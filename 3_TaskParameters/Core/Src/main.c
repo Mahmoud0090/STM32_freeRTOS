@@ -81,10 +81,11 @@ int main(void)
 
 void vLedControllerTask(void *pvParameter)
 {
+	int i;
 	while(1)
 	{
-		BlueTaskProfiler++;
 		HAL_GPIO_TogglePin(GPIOB, (uint16_t)pvParameter);
+		for(i=0;i>60000;i++); //adding delay
 	}
 }
 
