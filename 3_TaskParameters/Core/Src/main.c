@@ -4,6 +4,11 @@
 
 UART_HandleTypeDef huart2;
 
+/*using debug run and pause buttons we can see the ODR register
+ * values in SFRs tab
+//of the port B pins 12,13,14,15 , also we could connect leds and
+see how they blink by run and pause also (as they blink so fast)*/
+
 #define GREEN GPIO_PIN_12
 #define ORANGE GPIO_PIN_13
 #define RED GPIO_PIN_14
@@ -79,7 +84,7 @@ void vLedControllerTask(void *pvParameter)
 	while(1)
 	{
 		BlueTaskProfiler++;
-		HAL_GPIO_TogglePin(GPIOD, (uint16_t)pvParameter);
+		HAL_GPIO_TogglePin(GPIOB, (uint16_t)pvParameter);
 	}
 }
 
@@ -169,7 +174,7 @@ static void MX_GPIO_Init(void)
 
 
   /*enable clock access to port*/
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   /*reset pins*/
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14|
 		  GPIO_PIN_15, GPIO_PIN_RESET);
@@ -180,7 +185,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   /*initialize pins*/
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
