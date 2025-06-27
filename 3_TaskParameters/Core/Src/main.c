@@ -9,6 +9,11 @@ UART_HandleTypeDef huart2;
 #define RED GPIO_PIN_14
 #define BLUE GPIO_PIN_15
 
+const uint16_t* blue_led = (uint16_t*) BLUE;
+const uint16_t* green_led = (uint16_t*) GREEN;
+const uint16_t* red_led = (uint16_t*) RED;
+const uint16_t* orange_led = (uint16_t*) ORANGE;
+
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -16,10 +21,7 @@ static void MX_USART2_UART_Init(void);
 
 int __io_putchar(int ch);
 
-void vBlueLedController(void *pvParameter);
-void vRedLedController(void *pvParameter);
-void vGreenLedController(void *pvParameter);
-void vOrangeLedController(void *pvParameter);
+void vLedControllerTask(void *pvParameter);
 
 typedef uint32_t TaskProfiler;
 TaskProfiler BlueTaskProfiler,RedTaskProfiler, GreenTaskProfiler,
@@ -35,31 +37,31 @@ int main(void)
 	MX_GPIO_Init();
 	MX_USART2_UART_Init();
 
-	xTaskCreate(vBlueLedController,
+	xTaskCreate(vLedControllerTask,
 			  "Blue Led Controller",
 			  100,
-			  NULL,
+			  (void*)blue_led,
 			  1,
 			  NULL);
 
-	xTaskCreate(vRedLedController,
+	xTaskCreate(vLedControllerTask,
 			  "Red Led Controller",
 			  100,
-			  NULL,
+			  (void*)red_led,
 			  1,
 			  NULL);
 
-	xTaskCreate(vGreenLedController,
+	xTaskCreate(vLedControllerTask,
 			  "Green Led Controller",
 			  100,
-			  NULL,
+			  (void*)green_led,
 			  1,
 			  NULL);
 
-	xTaskCreate(vOrangeLedController,
+	xTaskCreate(vLedControllerTask,
 			  "Orange Led Controller",
 			  100,
-			  NULL,
+			  (void*)orange_led,
 			  1,
 			  NULL);
 
@@ -72,39 +74,12 @@ int main(void)
 }
 
 
-void vBlueLedController(void *pvParameter)
+void vLedControllerTask(void *pvParameter)
 {
 	while(1)
 	{
 		BlueTaskProfiler++;
-		HAL_GPIO_TogglePin(GPIOD, BLUE);
-	}
-}
-
-void vRedLedController(void *pvParameter)
-{
-	while(1)
-	{
-		RedTaskProfiler++;
-		HAL_GPIO_TogglePin(GPIOD, RED);
-	}
-}
-
-void vGreenLedController(void *pvParameter)
-{
-	while(1)
-	{
-		GreenTaskProfiler++;
-		HAL_GPIO_TogglePin(GPIOD, GREEN);
-	}
-}
-
-void vOrangeLedController(void *pvParameter)
-{
-	while(1)
-	{
-		OrangeTaskProfiler++;
-		HAL_GPIO_TogglePin(GPIOD, ORANGE);
+		HAL_GPIO_TogglePin(GPIOD, (uint16_t)pvParameter);
 	}
 }
 
