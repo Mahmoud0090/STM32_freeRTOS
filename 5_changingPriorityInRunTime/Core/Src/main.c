@@ -20,6 +20,8 @@ typedef uint32_t TaskProfiler;
 TaskProfiler BlueTaskProfiler,RedTaskProfiler, GreenTaskProfiler;
 TaskHandle_t blue_handle, red_handle, green_handle;
 
+uint32_t green_priority;
+
 int main(void)
 {
 
@@ -72,6 +74,8 @@ void vBlueLedController(void *pvParameter)
 //		for(i=0 ; i<=700000 ; i++){}
 //		vTaskPrioritySet(red_handle , 3); //in this case red will have
 //										//higher priority and will run alone
+
+		green_priority = uxTaskPriorityGet(green_handle);
 	}
 }
 
