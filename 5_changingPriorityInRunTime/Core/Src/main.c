@@ -44,7 +44,7 @@ int main(void)
   		  "Red Led Controller",
   		  100,
   		  NULL,
-  		  1,
+  		  2,
   		  &red_handle);
 
   xTaskCreate(vGreenLedController,
@@ -65,13 +65,13 @@ int main(void)
 
 void vBlueLedController(void *pvParameter)
 {
-	int i;
+	//int i;
 	while(1)
 	{
 		BlueTaskProfiler++;
-		for(i=0 ; i<=700000 ; i++){}
-		vTaskPrioritySet(red_handle , 3); //in this case red will have
-										//higher priority and will run alone
+//		for(i=0 ; i<=700000 ; i++){}
+//		vTaskPrioritySet(red_handle , 3); //in this case red will have
+//										//higher priority and will run alone
 	}
 }
 
@@ -80,6 +80,7 @@ void vRedLedController(void *pvParameter)
 	while(1)
 	{
 		RedTaskProfiler++;
+		vTaskPrioritySet(NULL,1); // changing own priority
 	}
 }
 
