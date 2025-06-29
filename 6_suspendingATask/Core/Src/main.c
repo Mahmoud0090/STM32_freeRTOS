@@ -20,7 +20,9 @@ typedef uint32_t TaskProfiler;
 TaskProfiler BlueTaskProfiler,RedTaskProfiler, GreenTaskProfiler;
 TaskHandle_t blue_handle, red_handle, green_handle;
 
-uint32_t suspend_monitor;
+uint32_t suspend_monitor = 0;
+uint32_t resume_monitor = 0;
+uint8_t is_suspended = 0;
 
 int main(void)
 {
@@ -83,7 +85,9 @@ void vRedLedController(void *pvParameter)
 
 		if(suspend_monitor > 50)
 		{
-			vTaskSuspend(blue_handle);
+			is_suspended = 1;
+			suspend_monitor = 0;
+			vTaskSuspend(NULL);
 		}
 	}
 }
@@ -95,6 +99,17 @@ void vGreenLedController(void *pvParameter)
 	{
 		GreenTaskProfiler++;
 		for(i=0;i<100000;i++);
+
+		if(is_suspended)
+		{
+			resume_monitor++;
+			if(resume_monitor > 200)
+			{
+				vTaskResume(red_handle);
+				resume_monitor = 0;
+				is_suspended = 0;
+			}
+		}
 	}
 }
 
