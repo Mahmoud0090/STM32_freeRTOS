@@ -1,0 +1,10 @@
+15:07:40 **** Incremental Build of configuration Debug for project 7_terminatingATask ****
+make -j4 all 
+arm-none-eabi-size  7_terminatingATask.elf 
+   text	   data	    bss	    dec	    hex	filename
+  26280	    108	  20852	  47240	   b888	7_terminatingATask.elf
+Finished building: default.size.stdout
+ 
+
+15:07:41 Build Finished. 0 errors, 0 warnings. (took 424ms)
+
