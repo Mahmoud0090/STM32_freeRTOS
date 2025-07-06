@@ -11,6 +11,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
 int __io_putchar(int ch);
+void uart2_write(int ch);
 
 void SenderTask(void* pvParameters);
 void ReceiverTask(void* pvParameters);
@@ -28,7 +29,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
 
-  yearQueue = xQueueCreate(5,sizeof(int32_t));
+  yearQueue = xQueueCreate(10,sizeof(int32_t));
 
   xTaskCreate(SenderTask,
 		  	  "Sender Task",
@@ -52,46 +53,44 @@ int main(void)
   }
 }
 
-void SenderTask(void* pvParameters)
-{
-	int32_t value_to_send = 2050;
-	BaseType_t qStatus;
-	while(1)
-	{
-		qStatus = xQueueSend(yearQueue,&value_to_send,0);
-		if(qStatus != pdPASS)
-		{
-			printf("Error, data could not be sent... \r\n");
-		}
-
-		for(int i=0; i<100000; i++);
-
-	}
+void SenderTask(void* pvParameters) {
+    int32_t value_to_send = 2050;
+    while(1) {
+        if (xQueueSend(yearQueue, &value_to_send, pdMS_TO_TICKS(100)) != pdPASS)
+        {
+            printf("Queue full! Retrying...\r\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));  // Send every 100ms
+    }
 }
-void ReceiverTask(void* pvParameters)
+
+void ReceiverTask(void* pvParameters) {
+    int32_t value_received;
+    while(1) {
+        // Wait FOREVER for data (no more "Error!" messages)
+        if (xQueueReceive(yearQueue, &value_received, portMAX_DELAY) == pdPASS)
+        {
+            printf("Received: %ld\r\n", value_received);
+            fflush(stdout);
+        }
+    }
+}
+void uart2_write(int ch)
 {
-	int32_t value_received;
-	const TickType_t wait_time = pdMS_TO_TICKS(100);
-	BaseType_t qStatus;
-
-	while(1)
-	{
-		qStatus = xQueueReceive(yearQueue,&value_received,wait_time);
-		if(qStatus == pdPASS)
-			printf("the value %d is received \r\n" , value_received);
-
-		else
-			printf("Error! , no value is received\r\n");
-	}
+	while(!(USART2->SR & (1U<<7))); //wait for TXE
+	USART2->DR = ch;
 }
 
 
 //this function for printf to be used in printing sentences
 int __io_putchar(int ch)
 {
-	HAL_UART_Transmit(&huart2, (uint8_t *) &ch, 1, 0xFFFF);
+	//HAL_UART_Transmit(&huart2, (uint8_t *) &ch, 1, 0xFFFF);
+	uart2_write(ch);
 	return ch;
 }
+
+
 
 void SystemClock_Config(void)
 {
