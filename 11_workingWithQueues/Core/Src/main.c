@@ -13,7 +13,8 @@ static void MX_USART2_UART_Init(void);
 int __io_putchar(int ch);
 void uart2_write(int ch);
 
-void SenderTask(void* pvParameters);
+void SenderTask1(void* pvParameters);
+void SenderTask2(void* pvParameters);
 void ReceiverTask(void* pvParameters);
 
 TaskHandle_t sender_handle, receiver_handle;
@@ -31,18 +32,27 @@ int main(void)
 
   yearQueue = xQueueCreate(10,sizeof(int32_t));
 
-  xTaskCreate(SenderTask,
-		  	  "Sender Task",
+  // two sender task of same priority, lower than receiver priority
+  xTaskCreate(SenderTask1,
+		  	  "Sender Task1",
 			  100,
 			  NULL,
 			  1,
 			  &sender_handle);
 
+  xTaskCreate(SenderTask2,
+		  	  "Sender Task2",
+			  100,
+			  NULL,
+			  1,
+			  &sender_handle);
+
+  // receiver task of highr priority
   xTaskCreate(ReceiverTask,
 		  	  "Receiver Task",
 			  100,
 			  NULL,
-			  1,
+			  2,
 			  &receiver_handle);
 
   vTaskStartScheduler();
@@ -53,7 +63,7 @@ int main(void)
   }
 }
 
-void SenderTask(void* pvParameters) {
+void SenderTask1(void* pvParameters) {
     int32_t value_to_send = 2050;
     while(1) {
         if (xQueueSend(yearQueue, &value_to_send, pdMS_TO_TICKS(100)) != pdPASS)
@@ -63,6 +73,18 @@ void SenderTask(void* pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(100));  // Send every 100ms
     }
 }
+
+void SenderTask2(void* pvParameters) {
+    int32_t value_to_send = 5050;
+    while(1) {
+        if (xQueueSend(yearQueue, &value_to_send, pdMS_TO_TICKS(100)) != pdPASS)
+        {
+            printf("Queue full! Retrying...\r\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));  // Send every 100ms
+    }
+}
+
 
 void ReceiverTask(void* pvParameters) {
     int32_t value_received;
