@@ -13,12 +13,31 @@ static void MX_USART2_UART_Init(void);
 int __io_putchar(int ch);
 void uart2_write(int ch);
 
-void SenderTask1(void* pvParameters);
-void SenderTask2(void* pvParameters);
-void ReceiverTask(void* pvParameters);
+void SenderTask(void *pvParameters);
+void ReceiverTask(void *pvParameters);
 
-TaskHandle_t sender_handle, receiver_handle;
-QueueHandle_t yearQueue;
+typedef enum
+{
+	humidity_sensor,
+	pressure_sensor
+}DataSource_t;
+
+//define structure type to be passed to the queue
+typedef struct
+{
+	uint8_t ucValue;
+	DataSource_t sDataSource;
+}Data_t;
+
+//declare two "Data_t" variables that will be passed to the queue
+static const Data_t xStructsToSend [2] =
+{
+		{56 , humidity_sensor},
+		{43 , pressure_sensor}
+};
+
+TaskHandle_t hum_task_handle, press_task_handle, receiver_handle;
+QueueHandle_t xQueue;
 
 int main(void)
 {
@@ -30,73 +49,85 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
 
-  yearQueue = xQueueCreate(10,sizeof(int32_t));
+  //create a queue to hold a max of 3 structures
+  xQueue = xQueueCreate(3,sizeof(Data_t));
 
-  // two sender task of same priority, lower than receiver priority
-  xTaskCreate(SenderTask1,
-		  	  "Sender Task1",
-			  100,
-			  NULL,
-			  1,
-			  &sender_handle);
-
-  xTaskCreate(SenderTask2,
-		  	  "Sender Task2",
-			  100,
-			  NULL,
-			  1,
-			  &sender_handle);
-
-  // receiver task of highr priority
+  //create a receiver task with priority of 1
   xTaskCreate(ReceiverTask,
 		  	  "Receiver Task",
-			  100,
+			  256,
 			  NULL,
-			  2,
+			  1,
 			  &receiver_handle);
+
+  //create a task to send humidity data with priority of 2
+  xTaskCreate(SenderTask,
+  		  	  "Humidity Sensor Task",
+  			  100,
+  			  (void*)&(xStructsToSend[0]),
+  			  2,
+  			  &hum_task_handle);
+
+  //create a task to send pressure data with priority of 2
+  xTaskCreate(SenderTask,
+			  "pressure Sensor Task",
+			  100,
+			  (void*)&(xStructsToSend[1]),
+			  2,
+			  &press_task_handle);
 
   vTaskStartScheduler();
 
   while (1)
   {
-	  printf("Hello from stm32 \n\r");
+
   }
 }
 
-void SenderTask1(void* pvParameters) {
-    int32_t value_to_send = 2050;
-    while(1) {
-        if (xQueueSend(yearQueue, &value_to_send, pdMS_TO_TICKS(100)) != pdPASS)
-        {
-            printf("Queue full! Retrying...\r\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(100));  // Send every 100ms
-    }
+void SenderTask(void *pvParameters)
+{
+	BaseType_t qStatus;
+
+	Data_t xDataToSend = *(Data_t*)pvParameters; // Copy the struct
+	//enter the blocked state of 200ms for space to become available
+	//in the queue each time the queue is full
+	const TickType_t wait_time = pdMS_TO_TICKS(200);
+
+	while(1)
+	{
+		qStatus = xQueueSend(xQueue,&xDataToSend,wait_time);
+		if(qStatus != pdPASS)
+		{
+			//Do something...
+		}
+		for(int i=0;i<100000;i++);
+	}
 }
 
-void SenderTask2(void* pvParameters) {
-    int32_t value_to_send = 5050;
-    while(1) {
-        if (xQueueSend(yearQueue, &value_to_send, pdMS_TO_TICKS(100)) != pdPASS)
-        {
-            printf("Queue full! Retrying...\r\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(100));  // Send every 100ms
-    }
+void ReceiverTask(void *pvParameters)
+{
+	Data_t xReceivedStructure;
+	BaseType_t qStatus;
+
+	while(1)
+	{
+		qStatus = xQueueReceive(xQueue, &xReceivedStructure, pdMS_TO_TICKS(20));
+
+		if(qStatus == pdPASS)
+		{
+			if(xReceivedStructure.sDataSource == humidity_sensor)
+				printf("Humidity sensor value = %d \n\r", xReceivedStructure.ucValue);
+
+			else
+				printf("Pressure sensor value = %d \n\r", xReceivedStructure.ucValue);
+		}
+		else
+		{
+			//Do something....
+		}
+	}
 }
 
-
-void ReceiverTask(void* pvParameters) {
-    int32_t value_received;
-    while(1) {
-        // Wait FOREVER for data (no more "Error!" messages)
-        if (xQueueReceive(yearQueue, &value_received, portMAX_DELAY) == pdPASS)
-        {
-            printf("Received: %ld\r\n", value_received);
-            fflush(stdout);
-        }
-    }
-}
 void uart2_write(int ch)
 {
 	while(!(USART2->SR & (1U<<7))); //wait for TXE
